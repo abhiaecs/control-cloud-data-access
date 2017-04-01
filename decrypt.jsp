@@ -1,0 +1,126 @@
+  <%@ include file="uHeader.jsp"%>
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>CP-ABE</title>
+  <!--[if lt IE 9]><script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+</head>
+<%@ page import="java.io.*"%>
+<%@ page import="databaseconnection.*,cp_abe.*"%>
+<%@ page import="java.sql.*"%>
+<%! String aKey=null;
+boolean status;%>
+<% String fid=request.getParameter("fid");
+Connection con1=databasecon.getconnection();Statement st2=con1.createStatement();
+%>
+ <%@ page import ="java.io.*,java.security.KeyFactory,java.security.KeyPair,java.security.KeyPairGenerator, java.security.PrivateKey, java.security.PublicKey, java.security.Security, java.security.spec.EncodedKeySpec, java.security.spec.PKCS8EncodedKeySpec, java.sql.Connection,java.sql.DriverManager,java.sql.PreparedStatement,java.sql.ResultSet,java.sql.Statement"%>
+<%@ page import ="javax.crypto.Cipher,javax.crypto.CipherInputStream, javax.crypto.CipherOutputStream,de.flexiprovider.core.FlexiCoreProvider"%>
+
+
+<%!String  thisLine = null;
+StringBuffer sb1=null;
+String filename=null,unm=null,fid=null,fnm=null,skey=null,akey=null,aces=null,pkey=null;
+int i=0;byte data[]=null,sky[]=null;
+%>
+ <%
+		
+
+Connection con=databasecon.getconnection();
+Statement st=con.createStatement();Statement st1=con.createStatement();
+unm=(String)session.getAttribute("unm");
+fid=request.getParameter("fid");
+ResultSet r=st.executeQuery("select fname,akey,refkey,access,pkey from filestore where fid="+fid+"  ");
+if(r.next())
+	{
+	System.out.println("if");
+	fnm=r.getString(1);
+	akey=r.getString(2);
+	sky=r.getBytes(3);
+	aces=r.getString(4);
+	skey=r.getString(5);
+}
+//FileOutputStream	fos = new FileOutputStream("E:\\ciphertextRSA.txt");
+//fos.write(akey.getBytes());
+//fos.flush();
+
+
+
+/*FileInputStream	fis = new FileInputStream("E:\\ciphertextRSA.txt");
+	CipherInputStream cis = new CipherInputStream(fis, cipher);
+FileOutputStream	fos1 = new FileOutputStream(cleartextAgainFile);
+int i;byte[] block = new byte[32];
+	while ((i = cis.read(block)) != -1) {
+		System.out.println("data");
+	   fos1.write(block, 0, i);
+	}
+	fos1.flush();*
+	//fos1.close();
+ /*try{
+         BufferedReader br = new BufferedReader(new FileReader("E:\\cleartextAgainRSA.txt"));
+		 StringBuffer sb=new StringBuffer();
+         while ((thisLine = br.readLine()) != null) {
+          //  System.out.println(thisLine);
+			
+                sb1=sb.append(thisLine);
+				//System.out.println(sb1);
+         }} catch(Exception e1){ } -->
+//String akey=new String(sb1);*/
+String loc=null,splty=null,mdegree=null;
+int exp=0;
+Statement sts=con.createStatement();
+ResultSet rrr=sts.executeQuery("select loc,exp,splty,mdegree from uregister where unm='"+unm+"'  ");
+if(rrr.next())
+	{
+	System.out.println("if");
+	loc=rrr.getString(1);
+	exp=rrr.getInt(2);
+	splty=rrr.getString(3);
+	mdegree=rrr.getString(4);
+}
+
+
+
+//String sk[]=skey.split(":");
+//String sk2[]=sk[1].split(",");
+
+Statement st5=con.createStatement();
+st5.executeUpdate("delete from temps");
+int ii=st5.executeUpdate("insert into temps values('"+loc+"','"+splty+"','"+mdegree+"','"+exp+"')");
+
+//St status=false;
+Statement st4=con.createStatement();
+ResultSet rsn=st4.executeQuery("select *from temps where "+aces+" ");
+if(rsn.next())
+	{ System.out.println("ifssssssssssssssss");
+PreparedStatement p=con.prepareStatement("select AES_DECRYPT(filedata,'"+skey+"') from filestore where fid="+fid+" ");
+ResultSet rr=p.executeQuery();
+if(rr.next()){
+	System.out.println("ifffff");
+	data=rr.getBytes(1);
+	System.out.println("data="+data);
+	status=false;
+}
+%>
+<body>
+  <div class="container">
+    <section class="register">
+      <center><h1><font size="" color="ff6600">FileDownload</font></h1><br><br>
+      <form method="post" action="finalDownload.jsp">
+ <table>
+    <tr>
+	<td><h3>File ID:</td> <td><input type="text" name="fid" value=<%=fid%> placeholder="" required></td>
+</tr>   <tr></tr><tr></tr>
+<tr><td>
+	 <h3>FileName:</td><td><input type="text" name="fname" value=<%=fnm%> placeholder="" required></td></tr>  <tr></tr><tr></tr>
+    <tr><td> <h3>FileData:</td><td><textarea name="file" cols=30 rows=10><%=new String(data)%></textarea></td></tr><tr></tr><tr></tr>
+     <tr><td><input type="hidden" name="skey" value=<%=pkey%>></textarea></td></tr>  <tr></tr><tr></tr>
+	 <tr><td></td><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="submit" value="Download"></td></tr>
+	   <table>
+      </form>
+	  <%}else{
+response.sendRedirect("download.jsp?msg=NotAccess ");
+	}%>
+    </section>
+  </div><br><br><br><br><br>
+</body><%@ include file="Footer.jsp"%>
